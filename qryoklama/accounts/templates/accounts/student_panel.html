@@ -1,0 +1,71 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Öğrenci Paneli</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        /* Mobil uyumlu tablo stilleri */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        th {
+            background-color: #f0f0f0;
+        }
+        @media (max-width: 768px) {
+            th, td {
+                padding: 8px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Öğrenci Paneli</h1>
+    <p>Hoşgeldiniz, {{ request.user.first_name }}!</p>
+    <h2>Yoklama Geçmişiniz</h2>
+    {% if records %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Ders Kodu</th>
+                    <th>Ders Adı</th>
+                    <th>Hafta</th>
+                    <th>Durum</th>
+                    <th>Tarih</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in records %}
+                    <tr>
+                        <td>{{ record.qr_session.course.course_code|upper }}</td>
+                        <td>{{ record.qr_session.course.course_name }}</td>
+                        <td>{{ record.qr_session.week_number }}</td>
+                        <td>
+                            {% if record.present %}
+                                <span style="color: green;">Yoklamanız alındı</span>
+                            {% else %}
+                                <span style="color: red;">Yok</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ record.updated_at|date:"d M Y H:i" }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>Henüz herhangi bir yoklama kaydı bulunmamaktadır.</p>
+    {% endif %}
+</div>
+</body>
+</html>

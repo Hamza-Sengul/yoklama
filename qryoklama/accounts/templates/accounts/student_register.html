@@ -1,0 +1,64 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Öğrenci Kayıt</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+    <div class="container">
+        <h1>Öğrenci Kayıt Formu</h1>
+        
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert {{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            
+            <label for="first_name">Ad:</label>
+            <input type="text" id="first_name" name="first_name" value="{{ first_name|default:'' }}" required>
+            
+            <label for="last_name">Soyad:</label>
+            <input type="text" id="last_name" name="last_name" value="{{ last_name|default:'' }}" required>
+            
+            <label for="email">Email:</label>
+            <input type="email" id="email" name="email" value="{{ email|default:'' }}" required>
+            
+            <label for="password">Şifre:</label>
+            <input type="password" id="password" name="password" required>
+            
+            <label for="confirm_password">Şifre Tekrar:</label>
+            <input type="password" id="confirm_password" name="confirm_password" required>
+            
+            <label for="student_number">Öğrenci Numarası:</label>
+            <input type="text" id="student_number" name="student_number" value="{{ student_number|default:'' }}" required>
+            
+            <label for="student_class">Sınıf Seçimi:</label>
+            <select id="student_class" name="student_class" required>
+                <option value="">Seçiniz</option>
+                <option value="1" {% if student_class == "1" %}selected{% endif %}>1</option>
+                <option value="2" {% if student_class == "2" %}selected{% endif %}>2</option>
+                <option value="3" {% if student_class == "3" %}selected{% endif %}>3</option>
+                <option value="4" {% if student_class == "4" %}selected{% endif %}>4</option>
+            </select>
+            
+            <label for="department">Bölüm Seçimi:</label>
+            <select id="department" name="department" required>
+                <option value="Yönetim Bilişim Sistemleri" selected>Yönetim Bilişim Sistemleri</option>
+            </select>
+            
+            <label for="accept_privacy">
+                <input type="checkbox" id="accept_privacy" name="accept_privacy" {% if accept_privacy %}checked{% endif %}>
+                Gizlilik Sözleşmesini Onaylıyorum
+            </label>
+            
+            <button type="submit">Kayıt Ol</button>
+        </form>
+    </div>
+</body>
+</html>

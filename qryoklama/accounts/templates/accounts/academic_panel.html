@@ -1,0 +1,50 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>Akademisyen Paneli</title>
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+  <div class="container">
+    <h1>Akademisyen Paneli</h1>
+    {% if messages %}
+      {% for message in messages %}
+        <div class="alert {{ message.tags }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+    <!-- Yeni ders ekleme sayfasına yönlendiren buton -->
+    <a href="{% url 'course_create' %}" class="btn">Yeni Ders Ekle</a>
+    <a href="{% url 'qr_session_create' %}" class="btn">QR Oturumu Oluştur</a>
+      <a href="{% url 'attendance_record_list' %}" class="btn">Yoklama Kayıtları</a>
+    <hr>
+    <h2>Ders Listesi</h2>
+    <table style="width:100%; border-collapse: collapse;">
+      <thead>
+        <tr style="background-color: #f0f0f0;">
+          <th style="padding: 10px; border: 1px solid #ddd;">Ders Kodu</th>
+          <th style="padding: 10px; border: 1px solid #ddd;">Ders Adı</th>
+          <th style="padding: 10px; border: 1px solid #ddd;">İşlemler</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for course in courses %}
+        <tr>
+          <td style="padding: 10px; border: 1px solid #ddd;">{{ course.course_code|upper }}</td>
+          <td style="padding: 10px; border: 1px solid #ddd;">{{ course.course_name }}</td>
+          <td style="padding: 10px; border: 1px solid #ddd;">
+            <a href="{% url 'course_detail' course.id %}" class="btn">Ders Detay</a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="3" style="padding: 10px; border: 1px solid #ddd;">Henüz ders eklenmemiş.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>

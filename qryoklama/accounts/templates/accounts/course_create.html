@@ -1,0 +1,30 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>Ders Ekle</title>
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+  <div class="container">
+    <h1>Ders Ekle</h1>
+    {% if messages %}
+      {% for message in messages %}
+        <div class="alert {{ message.tags }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+    <form action="{% url 'course_create' %}" method="post">
+      {% csrf_token %}
+      <label for="course_code">Ders Kodu:</label>
+      <input type="text" name="course_code" id="course_code" required>
+      <label for="course_name">Ders Adı:</label>
+      <input type="text" name="course_name" id="course_name" required>
+      <button type="submit">Ders Ekle</button>
+    </form>
+    <br>
+    <a href="{% url 'academic_panel' %}" class="btn">Geri Dön</a>
+  </div>
+</body>
+</html>

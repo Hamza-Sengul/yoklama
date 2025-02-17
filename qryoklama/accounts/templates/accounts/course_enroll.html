@@ -1,0 +1,116 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Öğrenci Ekle - {{ course.course_code|upper }}</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        /* Ekstra tablo ve arama stilleri */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            padding: 8px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        th {
+            background-color: #f0f0f0;
+        }
+        .select-all {
+            cursor: pointer;
+        }
+        /* Arama kutusu */
+        #studentSearch {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Öğrenci Ekle - {{ course.course_code|upper }} - {{ course.course_name }}</h1>
+        
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert {{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+        
+        <!-- Öğrenci arama kutusu -->
+        <input type="text" id="studentSearch" placeholder="Öğrenci ara...">
+        
+        <form action="{% url 'course_enroll' course.id %}" method="post">
+            {% csrf_token %}
+            {% for class, students in grouped_students.items %}
+                <h2>Sınıf: {{ class }}</h2>
+                <table class="student-table" data-class="{{ class }}">
+                    <thead>
+                        <tr>
+                            <th>
+                                <input type="checkbox" class="select-all" data-class="{{ class }}"> Tümünü Seç
+                            </th>
+                            <th>Ad Soyad</th>
+                            <th>Email</th>
+                            <th>Öğrenci Numarası</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student in students %}
+                        <tr>
+                            <td>
+                                <input type="checkbox" name="student_ids" value="{{ student.user.id }}" class="student-checkbox" data-class="{{ class }}">
+                            </td>
+                            <td>{{ student.user.first_name }} {{ student.user.last_name }}</td>
+                            <td>{{ student.user.email }}</td>
+                            <td>{{ student.student_number }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endfor %}
+            <button type="submit" class="btn">Seçilen Öğrencileri Ekle</button>
+        </form>
+        <br>
+        <a href="{% url 'course_detail' course.id %}" class="btn">Geri Dön</a>
+    </div>
+
+    <script>
+        // Arama fonksiyonu: Kullanıcının girdiği değere göre tüm tablolardaki satırları filtreler
+        document.getElementById('studentSearch').addEventListener('keyup', function() {
+            var filter = this.value.toLowerCase();
+            var tables = document.querySelectorAll('table.student-table');
+            tables.forEach(function(table) {
+                var rows = table.getElementsByTagName('tr');
+                // Başlık satırını atlamak için 1. satırdan başlıyoruz
+                for (var i = 1; i < rows.length; i++) {
+                    var cells = rows[i].getElementsByTagName('td');
+                    var rowText = "";
+                    for (var j = 0; j < cells.length; j++) {
+                        rowText += cells[j].textContent.toLowerCase() + " ";
+                    }
+                    rows[i].style.display = rowText.indexOf(filter) > -1 ? "" : "none";
+                }
+            });
+        });
+
+        // Her sınıf tablosu için "Tümünü Seç" checkbox fonksiyonu
+        document.querySelectorAll('.select-all').forEach(function(selectAllCheckbox) {
+            selectAllCheckbox.addEventListener('change', function() {
+                var classGroup = this.getAttribute('data-class');
+                var checkboxes = document.querySelectorAll('.student-checkbox[data-class="' + classGroup + '"]');
+                checkboxes.forEach(function(cb) {
+                    cb.checked = selectAllCheckbox.checked;
+                });
+            });
+        });
+    </script>
+</body>
+</html>

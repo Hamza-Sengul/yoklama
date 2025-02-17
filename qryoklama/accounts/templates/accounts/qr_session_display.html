@@ -1,0 +1,22 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>QR Kod Görüntüle</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+<div class="container">
+    <h1>QR Kod</h1>
+    <p>Ders: {{ qr_session.course.course_code|upper }} - {{ qr_session.course.course_name }}</p>
+    <p>Hafta: {{ qr_session.week_number }}</p>
+    <img src="data:image/png;base64,{{ qr_code }}" alt="QR Kod" style="max-width: 300px; width:100%;">
+    <br><br>
+    <a href="{% url 'qr_session_end' qr_session.id %}" class="btn">Yoklamayı Sonlandır</a>
+    <br><br>
+    <a href="{% url 'academic_panel' %}" class="btn">Geri Dön</a>
+</div>
+</body>
+</html>
