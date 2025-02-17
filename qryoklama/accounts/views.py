@@ -151,8 +151,10 @@ from .models import StudentProfile, Course, Enrollment
 # (student_register, student_login, academic_login, student_panel vs.)
 
 def academic_panel(request):
-    courses = Course.objects.all().order_by('-created_at')
+    # Sadece giriş yapan akademisyenin oluşturduğu dersleri getiriyoruz.
+    courses = Course.objects.filter(created_by=request.user).order_by('-created_at')
     return render(request, 'accounts/academic_panel.html', {'courses': courses})
+
 
 
 
