@@ -94,6 +94,7 @@ def academic_login(request):
 
 
 def student_login(request):
+    next_url = request.GET.get('next')  # URL'den next parametresini alıyoruz
     if request.method == 'POST':
         username = request.POST.get('username')  # Email kullanılıyor
         password = request.POST.get('password')
@@ -104,13 +105,18 @@ def student_login(request):
                 # Şifre değiştirme kontrolü:
                 if user.studentprofile.must_change_password:
                     messages.info(request, "Lütfen ilk girişte şifrenizi değiştiriniz.")
+                    # next parametresini de session'da saklayabiliriz, ancak burada basitçe password_change sayfasına yönlendiriyoruz.
                     return redirect('password_change')
+                # Eğer next parametresi varsa onu kullanıyoruz
+                if next_url:
+                    return redirect(next_url)
                 return redirect('student_panel')
             else:
                 messages.error(request, "Bu giriş öğrenciler içindir.")
         else:
             messages.error(request, "Kullanıcı adı veya şifre hatalı.")
-    return render(request, 'accounts/student_login.html')
+    return render(request, 'accounts/student_login.html', {'next': next_url})
+
 
 from django.contrib.auth.views import PasswordChangeView
 from django.urls import reverse_lazy
