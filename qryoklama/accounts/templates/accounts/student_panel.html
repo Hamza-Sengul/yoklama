@@ -33,6 +33,12 @@
 <div class="container">
     <h1>Öğrenci Paneli</h1>
     <p>Hoşgeldiniz, {{ request.user.first_name }}!</p>
+    {% if messages %}
+  {% for message in messages %}
+    <div class="alert {{ message.tags }}">{{ message }}</div>
+  {% endfor %}
+{% endif %}
+
     <h2>Yoklama Geçmişiniz</h2>
     {% if records %}
         <table>
