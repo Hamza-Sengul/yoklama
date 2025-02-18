@@ -108,7 +108,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'tr-tr'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Europe/Istanbul'
 
 USE_I18N = True
 
@@ -125,3 +125,14 @@ STATICFILES_DIRS = [ BASE_DIR / 'static' ]
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+
+# SMTP E-posta gönderimi için ayarlar
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'  # SMTP backend kullanılır
+EMAIL_HOST = 'smtp.gmail.com'         # Gmail SMTP sunucusu
+EMAIL_PORT = 587                      # TLS ile kullanıldığında port 587
+EMAIL_HOST_USER = 'qryoklamatarsus@gmail.com'      # Gmail adresiniz
+EMAIL_HOST_PASSWORD = 'dbet pgks mdfg cpbz'   # Gmail şifreniz veya uygulama şifreniz
+EMAIL_USE_TLS = True                  # TLS kullanımı aktif
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER  # Gönderici adresi olarak kullanılır

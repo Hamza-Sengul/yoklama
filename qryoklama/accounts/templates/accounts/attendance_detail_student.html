@@ -1,0 +1,84 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ course.course_code|upper }} - Yoklama Detayları</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  <style>
+    body {
+      background: #f8f9fa;
+      font-family: Arial, sans-serif;
+      color: #333;
+    }
+    .container {
+      max-width: 800px;
+      margin: 20px auto;
+      padding: 20px;
+      background: #fff;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      border-radius: 8px;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #2575fc;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 10px;
+      border: 1px solid #ddd;
+      text-align: left;
+    }
+    th {
+      background: #f0f0f0;
+    }
+    .btn {
+      display: inline-block;
+      padding: 8px 15px;
+      background: #2575fc;
+      color: #fff;
+      text-decoration: none;
+      border-radius: 4px;
+      margin-top: 15px;
+    }
+    .btn:hover {
+      background: #6a11cb;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>{{ course.course_code|upper }} - {{ course.course_name }} Yoklama Detayları</h1>
+  {% if records %}
+    <table>
+      <thead>
+        <tr>
+          <th>Hafta</th>
+          <th>Oturum</th>
+          <th>Durum</th>
+          <th>Tarih</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for record in records %}
+          <tr>
+            <td>{{ record.qr_session.week_number }}</td>
+            <td>{{ record.qr_session.session_number }}</td>
+            <td>{% if record.present %}Mevcut{% else %}Yok{% endif %}</td>
+            <td>{{ record.qr_session.created_at|date:"d M Y H:i" }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>Henüz yoklama kaydı bulunmamaktadır.</p>
+  {% endif %}
+  <a href="{% url 'student_panel' %}" class="btn">Geri Dön</a>
+</div>
+</body>
+</html>

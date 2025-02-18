@@ -38,17 +38,17 @@ class Enrollment(models.Model):
     def __str__(self):
         return f"{self.student.get_full_name()} enrolled in {self.course.course_code.upper()}"
 
-# QR Oturumu (her QR kod ile oluşturulan yoklama oturumu)
 class QrSession(models.Model):
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="qr_sessions")
+    course = models.ForeignKey('Course', on_delete=models.CASCADE, related_name="qr_sessions")
     week_number = models.IntegerField("Hafta")
+    session_number = models.PositiveIntegerField("Oturum Numarası", default=1)
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="qr_sessions")
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     ended_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
-        return f"{self.course.course_code.upper()} - Hafta {self.week_number}"
+        return f"{self.course.course_code.upper()} - Hafta {self.week_number}, Oturum {self.session_number}"
 
 # Her QR oturumu için öğrenci yoklama kaydı
 class AttendanceRecord(models.Model):

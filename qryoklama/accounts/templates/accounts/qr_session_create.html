@@ -9,6 +9,7 @@
     <style>
         .timeline {
             display: flex;
+            flex-wrap: wrap;
             gap: 10px;
             margin-bottom: 20px;
         }
@@ -17,6 +18,8 @@
             border: 1px solid #ccc;
             border-radius: 4px;
             cursor: pointer;
+            min-width: 40px;
+            text-align: center;
         }
         .week-option.disabled {
             background-color: #f2f2f2;
@@ -26,6 +29,9 @@
         .week-option.selected {
             background-color: #2575fc;
             color: white;
+        }
+        .input-field {
+            margin-top: 10px;
         }
     </style>
 </head>
@@ -47,11 +53,16 @@
             {% endfor %}
         </select>
         <br><br>
+        <div class="input-field">
+            <label for="session_number">Oturum Numarası:</label>
+            <input type="number" name="session_number" id="session_number" value="1" min="1" required>
+        </div>
+        <br>
         <label>Hafta Seçiniz:</label>
         <div class="timeline" id="weekTimeline">
             {% for week in week_range %}
-                {% if week < current_week %}
-                    <div class="week-option disabled" data-week="{{ week }}">{{ week }} (X)</div>
+                {% if week in exam_weeks %}
+                    <div class="week-option disabled" data-week="{{ week }}">{{ week }} (Sınav)</div>
                 {% else %}
                     <div class="week-option" data-week="{{ week }}">{{ week }}</div>
                 {% endif %}

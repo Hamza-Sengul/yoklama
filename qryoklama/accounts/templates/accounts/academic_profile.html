@@ -1,0 +1,83 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Akademisyen Profil</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        /* Basit form stil örneği */
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #fff;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        label {
+            display: block;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+        input[type="text"],
+        input[type="email"],
+        input[type="password"] {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background: #2575fc;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #6a11cb;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Akademisyen Profilim</h1>
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert {{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+    <form method="post">
+        {% csrf_token %}
+        <label for="first_name">Ad:</label>
+        <input type="text" id="first_name" name="first_name" value="{{ user.first_name }}" required>
+
+        <label for="last_name">Soyad:</label>
+        <input type="text" id="last_name" name="last_name" value="{{ user.last_name }}" required>
+
+        <label for="email">E-posta:</label>
+        <input type="email" id="email" name="email" value="{{ user.email }}" required>
+
+        <hr>
+        <p>Şifre güncellemek istemiyorsanız boş bırakın.</p>
+        <label for="current_password">Mevcut Şifre:</label>
+        <input type="password" id="current_password" name="current_password">
+
+        <label for="new_password">Yeni Şifre:</label>
+        <input type="password" id="new_password" name="new_password">
+
+        <label for="confirm_password">Yeni Şifre Tekrar:</label>
+        <input type="password" id="confirm_password" name="confirm_password">
+
+        <button type="submit">Profil Güncelle</button>
+    </form>
+    <br>
+    <a href="{% url 'academic_panel' %}" class="btn">Geri Dön</a>
+</div>
+</body>
+</html>

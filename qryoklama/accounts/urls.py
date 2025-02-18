@@ -20,4 +20,8 @@ urlpatterns = [
     path('sifre-degistir/', views.CustomPasswordChangeView.as_view(), name='password_change'),
     path('sifre-degistirildi/', auth_views.PasswordChangeDoneView.as_view(
             template_name='accounts/password_change_done.html'), name='password_change_done'),
+    path('akademisyen/yoklama/detay/<int:session_id>/', views.attendance_detail, name='attendance_detail'),
+    path('akademisyen/profil/', views.academic_profile, name='academic_profile'),
+    path('logout/', views.custom_logout, name='logout'),
+    path('ogrenci/yoklama/detay/<int:course_id>/', views.attendance_detail_student, name='attendance_detail_student'),
 ]

@@ -132,12 +132,34 @@ class CustomPasswordChangeView(PasswordChangeView):
         self.request.user.studentprofile.save()
         return response
 
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from .models import AttendanceRecord, Course
+
 def student_panel(request):
-    # Giriş yapmış öğrenciye ait yoklama kayıtlarını çekiyoruz.
-    records = AttendanceRecord.objects.filter(student=request.user).order_by('-qr_session__created_at')
-    return render(request, 'accounts/student_panel.html', {
-        'records': records,
-    })
+    # Giriş yapmış öğrenciye ait yoklama kayıtlarını getiriyoruz.
+    records = AttendanceRecord.objects.filter(student=request.user).select_related('qr_session', 'qr_session__course').order_by('qr_session__course__course_code', 'qr_session__week_number')
+    
+    # Kayıtları ders bazında grupluyoruz
+    grouped_records = {}
+    for record in records:
+        course = record.qr_session.course
+        if course not in grouped_records:
+            grouped_records[course] = {'records': [], 'total': 0, 'present': 0}
+        grouped_records[course]['records'].append(record)
+        grouped_records[course]['total'] += 1
+        if record.present:
+            grouped_records[course]['present'] += 1
+
+    return render(request, 'accounts/student_panel.html', {'grouped_records': grouped_records})
+
+
+def attendance_detail_student(request, course_id):
+    course = get_object_or_404(Course, id=course_id)
+    # Seçilen ders için öğrencinin tüm yoklama kayıtlarını sırayla getiriyoruz.
+    records = AttendanceRecord.objects.filter(student=request.user, qr_session__course=course).select_related('qr_session').order_by('qr_session__week_number', 'qr_session__session_number')
+    return render(request, 'accounts/attendance_detail_student.html', {'course': course, 'records': records})
+
 
 
 
@@ -273,52 +295,79 @@ from django.utils import timezone
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from .models import Course, Enrollment, QrSession, AttendanceRecord, StudentProfile
-
+import datetime
 # --- Önceki view'ler (öğrenci, akademisyen girişleri, ders ekleme, detay vs.) burada mevcut ---
 
-# Sabitler (örnek amaçlı; gerçek uygulamada tarihsel hesaplamalar kullanılabilir)
-CURRENT_WEEK = 3  
-TOTAL_WEEKS = 14  
+import datetime
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from .models import Course, QrSession, Enrollment, AttendanceRecord
 
-# 1. QR Oturumu Oluşturma (Form sayfası)
+# Ders başlangıç ve yoklama alınacak dönem (14 hafta)
+CLASS_START = datetime.date(2025, 2, 3)
+CLASS_END = CLASS_START + datetime.timedelta(days=98 - 1)  # 14 hafta boyunca
+
+# Sınav tarih aralıkları (örneğin, Ara Sınav ve Yarıyıl Sonu Sınavı)
+EXAM_PERIODS = [
+    (datetime.date(2025, 3, 22), datetime.date(2025, 3, 28)),
+    (datetime.date(2025, 5, 20), datetime.date(2025, 5, 30)),
+]
+
 def qr_session_create(request):
-    # Akademisyenin oluşturduğu dersleri getiriyoruz
+    # Akademisyenin oluşturduğu dersleri getiriyoruz.
     courses = Course.objects.filter(created_by=request.user)
-    # Ayrıca derslere ait haftaları listelemek için range oluşturuyoruz.
-    week_range = range(1, TOTAL_WEEKS+1)
+    
+    total_weeks = 14  # Sabit 14 hafta
+    week_range = range(1, total_weeks + 1)
+    
+    # Exam weeks hesaplaması: Eğer haftanın en az 4 günü sınav dönemine denk geliyorsa o hafta seçilemez.
+    exam_weeks = []
+    for week in week_range:
+        week_start = CLASS_START + datetime.timedelta(days=(week - 1) * 7)
+        week_end = week_start + datetime.timedelta(days=6)
+        for exam_start, exam_end in EXAM_PERIODS:
+            latest_start = max(week_start, exam_start)
+            earliest_end = min(week_end, exam_end)
+            delta = (earliest_end - latest_start).days + 1 if earliest_end >= latest_start else 0
+            if delta >= 4:
+                exam_weeks.append(week)
+                break
+    
     if request.method == 'POST':
         course_id = request.POST.get('course_id')
         week_number = request.POST.get('week_number')
-        if not course_id or not week_number:
+        session_number = request.POST.get('session_number', '1')  # Oturum numarası, varsayılan 1
+        if not all([course_id, week_number, session_number]):
             messages.error(request, "Lütfen tüm alanları doldurunuz.")
             return render(request, 'accounts/qr_session_create.html', {
                 'courses': courses,
-                'current_week': CURRENT_WEEK,
-                'total_weeks': TOTAL_WEEKS,
-                'week_range': week_range
+                'week_range': week_range,
+                'exam_weeks': exam_weeks,
             })
         try:
             week_number = int(week_number)
+            session_number = int(session_number)
         except ValueError:
-            messages.error(request, "Geçersiz hafta numarası.")
+            messages.error(request, "Geçersiz değer girdiniz.")
             return render(request, 'accounts/qr_session_create.html', {
                 'courses': courses,
-                'current_week': CURRENT_WEEK,
-                'total_weeks': TOTAL_WEEKS,
-                'week_range': week_range
+                'week_range': week_range,
+                'exam_weeks': exam_weeks,
             })
-        if week_number < CURRENT_WEEK:
-            messages.error(request, "Geçmiş haftalar seçilemez.")
+        if week_number in exam_weeks:
+            messages.error(request, "Sınav haftalarında yoklama alınamaz.")
             return render(request, 'accounts/qr_session_create.html', {
                 'courses': courses,
-                'current_week': CURRENT_WEEK,
-                'total_weeks': TOTAL_WEEKS,
-                'week_range': week_range
+                'week_range': week_range,
+                'exam_weeks': exam_weeks,
             })
         course = get_object_or_404(Course, id=course_id)
+        # Aynı hafta ve oturum numarası için önceden oluşturulmuş bir QR oturumu kontrol edilebilir.
+        # Eğer istenirse akademisyen uyarılabilir. Burada direk yeni oturum oluşturuyoruz.
         qr_session = QrSession.objects.create(
             course=course,
             week_number=week_number,
+            session_number=session_number,
             created_by=request.user
         )
         # Dersin kayıtlı tüm öğrencileri için yoklama kaydı oluştur (varsayılan olarak "yok")
@@ -329,10 +378,10 @@ def qr_session_create(request):
     else:
         return render(request, 'accounts/qr_session_create.html', {
             'courses': courses,
-            'current_week': CURRENT_WEEK,
-            'total_weeks': TOTAL_WEEKS,
-            'week_range': week_range
+            'week_range': week_range,
+            'exam_weeks': exam_weeks,
         })
+
 
 def qr_session_display(request, session_id):
     qr_session = get_object_or_404(QrSession, id=session_id)
@@ -375,8 +424,166 @@ def qr_attendance(request, session_id):
     messages.success(request, "Yoklamanız alındı.")
     return redirect('student_panel')
 
-# 5. Akademisyenin yoklama kayıtlarını görüntüleyebileceği sayfa
 def attendance_record_list(request):
-    qr_sessions = QrSession.objects.filter(created_by=request.user).order_by('-created_at')
-    return render(request, 'accounts/attendance_record_list.html', {'qr_sessions': qr_sessions})
+    # Sadece giriş yapan akademisyenin oluşturduğu QR oturumlarını getiriyoruz.
+    sessions = QrSession.objects.filter(created_by=request.user).order_by('course__course_code', 'week_number')
+    
+    # Her session için toplam ve mevcut yoklama sayısını hesaplıyoruz.
+    for session in sessions:
+        session.total_count = session.attendance_records.count()
+        session.present_count = session.attendance_records.filter(present=True).count()
+    
+    grouped_sessions = {}
+    for session in sessions:
+        course = session.course
+        if course not in grouped_sessions:
+            grouped_sessions[course] = []
+        grouped_sessions[course].append(session)
+    return render(request, 'accounts/attendance_record_list.html', {'grouped_sessions': grouped_sessions})
+
+
+
+def attendance_detail(request, session_id):
+    qr_session = get_object_or_404(QrSession, id=session_id, created_by=request.user)
+    records = qr_session.attendance_records.all()
+    present_records = records.filter(present=True)
+    absent_records = records.filter(present=False)
+    return render(request, 'accounts/attendance_detail.html', {
+        'session': qr_session,
+        'present_records': present_records,
+        'absent_records': absent_records,
+    })
+
+
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
+from django.contrib import messages
+from django.shortcuts import render, redirect
+
+@login_required
+def academic_profile(request):
+    # Sadece akademisyenler (superuser) için erişim kontrolü yapabilirsiniz:
+    if not request.user.is_superuser:
+        messages.error(request, "Bu sayfaya erişim yetkiniz yok.")
+        return redirect('academic_panel')
+
+    user = request.user
+    if request.method == 'POST':
+        first_name = request.POST.get('first_name', '').strip()
+        last_name = request.POST.get('last_name', '').strip()
+        email = request.POST.get('email', '').strip()
+        current_password = request.POST.get('current_password', '')
+        new_password = request.POST.get('new_password', '')
+        confirm_password = request.POST.get('confirm_password', '')
+
+        # E-posta değişikliği yapılıyorsa, e-posta uygunluğunu kontrol edelim
+        if email and email != user.email:
+            if User.objects.filter(email=email).exclude(id=user.id).exists():
+                messages.error(request, "Bu e-posta zaten kullanılıyor.")
+                return render(request, 'accounts/academic_profile.html', {'user': user})
+        
+        # Kullanıcı bilgilerini güncelleyelim
+        user.first_name = first_name
+        user.last_name = last_name
+        user.email = email
+
+        # Eğer şifre güncelleme alanları doldurulduysa
+        if current_password or new_password or confirm_password:
+            if not user.check_password(current_password):
+                messages.error(request, "Mevcut şifreniz yanlış.")
+                return render(request, 'accounts/academic_profile.html', {'user': user})
+            if new_password != confirm_password:
+                messages.error(request, "Yeni şifreler eşleşmiyor.")
+                return render(request, 'accounts/academic_profile.html', {'user': user})
+            # Şifre kriterleri kontrol edilebilir (örneğin minimum uzunluk vs.)
+            user.set_password(new_password)
+        
+        user.save()
+        messages.success(request, "Profil bilgileriniz güncellendi.")
+        # Eğer şifre güncellendiyse, tekrar giriş yapılması gerekebilir; burada isteğe bağlı yönlendirme yapabilirsiniz.
+        return redirect('academic_profile')
+    
+    return render(request, 'accounts/academic_profile.html', {'user': user})
+
+# accounts/views.py
+
+from django.contrib.auth import logout
+from django.shortcuts import redirect
+
+def custom_logout(request):
+    logout(request)
+    return redirect('home')  # Çıkıştan sonra yönlendirilecek sayfa, örn: 'home'
+
+
+from django.shortcuts import get_object_or_404, redirect, render
+from django.contrib import messages
+from django.utils import timezone
+from django.core.mail import send_mail
+from django.conf import settings
+from .models import QrSession, AttendanceRecord
+
+def qr_session_end(request, session_id):
+    qr_session = get_object_or_404(QrSession, id=session_id)
+    qr_session.is_active = False
+    qr_session.ended_at = timezone.now()
+    qr_session.save()
+    
+    # Akademisyene gönderilecek e-posta detayları
+    total = qr_session.attendance_records.count()
+    present_count = qr_session.attendance_records.filter(present=True).count()
+    absent_count = total - present_count
+    absent_students = qr_session.attendance_records.filter(present=False)
+    absent_list = "\n".join([
+        f"{record.student.first_name} {record.student.last_name} ({record.student.email})"
+        for record in absent_students
+    ])
+    
+    subject_academic = f"Yoklama Sonuçları: {qr_session.course.course_code.upper()} - Hafta {qr_session.week_number}"
+    message_academic = (
+        f"Ders: {qr_session.course.course_code.upper()} - {qr_session.course.course_name}\n"
+        f"Hafta: {qr_session.week_number}\n"
+        f"Toplam Öğrenci: {total}\n"
+        f"Mevcut: {present_count}\n"
+        f"Yok: {absent_count}\n\n"
+        "Yok olmayan öğrenciler:\n"
+        f"{absent_list if absent_list else 'Tüm öğrenciler yoklamaya girmiş.'}"
+    )
+    recipient_academic = [request.user.email]
+    
+    try:
+        send_mail(
+            subject_academic,
+            message_academic,
+            settings.DEFAULT_FROM_EMAIL,
+            recipient_academic,
+            fail_silently=False,
+        )
+    except Exception as e:
+        messages.error(request, f"QR oturumu sonlandırıldı ancak akademisyene e-posta gönderilemedi: {e}")
+    
+    # Şimdi, o oturuma kayıtlı tüm öğrencilere e-posta gönderelim
+    for record in qr_session.attendance_records.all():
+        student_email = record.student.email
+        subject_student = f"Yoklama Sonucu: {qr_session.course.course_code.upper()} - Hafta {qr_session.week_number}"
+        message_student = (
+            f"Sayın {record.student.first_name},\n\n"
+            f"Ders: {qr_session.course.course_code.upper()} - {qr_session.course.course_name}\n"
+            f"Hafta: {qr_session.week_number}\n"
+            f"Yoklama Sonucunuz: {'Mevcut' if record.present else 'Mevcut Değil'}\n\n"
+            "Bilginize."
+        )
+        try:
+            send_mail(
+                subject_student,
+                message_student,
+                settings.DEFAULT_FROM_EMAIL,
+                [student_email],
+                fail_silently=False,
+            )
+        except Exception as e:
+            # Eğer bir öğrencinin e-postası gönderilemezse, loglama veya hata mesajı ekleyebilirsiniz
+            print(f"E-posta gönderilemedi ({student_email}): {e}")
+    
+    messages.success(request, "QR Oturumu sonlandırıldı. Yoklama sonuçları akademisyen ve öğrencilere gönderildi.")
+    return redirect('academic_panel')
 
