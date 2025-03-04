@@ -1,5 +1,5 @@
 # accounts/urls.py
-from django.urls import path
+from django.urls import path, reverse_lazy
 from . import views
 from django.contrib.auth import views as auth_views
 
@@ -24,4 +24,22 @@ urlpatterns = [
     path('akademisyen/profil/', views.academic_profile, name='academic_profile'),
     path('logout/', views.custom_logout, name='logout'),
     path('ogrenci/yoklama/detay/<int:course_id>/', views.attendance_detail_student, name='attendance_detail_student'),
+
+    path('ogrenci/sifre-unuttum/', auth_views.PasswordResetView.as_view(
+            template_name='accounts/password_reset_form.html',
+            email_template_name='accounts/password_reset_email.html',
+            subject_template_name='accounts/password_reset_subject.txt',
+            success_url=reverse_lazy('password_reset_done'),
+            extra_email_context={'domain': 'tarsusuniversitesiqryoklama.online'}  # reset linkinde kullanılacak domain
+        ), name='password_reset'),
+    path('ogrenci/sifre-unuttum/done/', auth_views.PasswordResetDoneView.as_view(
+            template_name='accounts/password_reset_done.html'
+        ), name='password_reset_done'),
+    path('ogrenci/sifre-sifirla/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(
+            template_name='accounts/password_reset_confirm.html',
+            success_url=reverse_lazy('password_reset_complete')
+        ), name='password_reset_confirm'),
+    path('ogrenci/sifre-sifirla/done/', auth_views.PasswordResetCompleteView.as_view(
+            template_name='accounts/password_reset_complete.html'
+        ), name='password_reset_complete'),
 ]
