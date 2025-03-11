@@ -96,10 +96,15 @@
       width: 100%;
     }
     
-    button:hover {
+    button:hover:not(:disabled) {
       background-color: var(--secondary-color);
       transform: translateY(-2px);
       box-shadow: var(--shadow);
+    }
+    
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
     }
     
     .alert {
@@ -155,7 +160,7 @@
         <div class="alert {{ message.tags }}">{{ message }}</div>
       {% endfor %}
     {% endif %}
-    <form method="post">
+    <form method="post" id="loginForm">
       {% csrf_token %}
       <!-- Cihaz kimliğini taşıyacak gizli alan -->
       <input type="hidden" id="device_id" name="device_id">
@@ -166,20 +171,23 @@
       <label for="password">Şifre:</label>
       <input type="password" id="password" name="password" required>
       
-      <button type="submit">Giriş Yap</button>
+      <button type="submit" id="loginBtn" disabled>Giriş Yap</button>
     </form>
     <br>
     <a href="{% url 'password_reset' %}">Şifremi Unuttum</a>
   </div>
   
-  <script>
-    // FingerprintJS kullanarak cihazın benzersiz kimliğini alalım.
+  <script type="module">
+    import FingerprintJS from 'https://openfpcdn.io/fingerprintjs/v3';
     FingerprintJS.load().then(fp => {
       fp.get().then(result => {
         // result.visitorId, cihazın benzersiz kimliğidir.
         document.getElementById('device_id').value = result.visitorId;
+        // Cihaz kimliği alındığında giriş butonunu etkinleştir.
+        document.getElementById('loginBtn').disabled = false;
       });
     });
   </script>
+  
 </body>
 </html>
