@@ -98,16 +98,26 @@ def student_login(request):
     if request.method == 'POST':
         username = request.POST.get('username')  # Email kullanılıyor
         password = request.POST.get('password')
+        device_id = request.POST.get('device_id')  # Cihaz kimliği (tarayıcı fingerprint'ı)
         user = authenticate(request, username=username, password=password)
         if user is not None:
             if not user.is_superuser:
+                profile = user.studentprofile
+                # İlk girişte cihaz eşleştirmesi yapılmamışsa kaydet
+                if not profile.paired_device:
+                    profile.paired_device = device_id
+                    profile.save()
+                    messages.info(request, "Cihazınız başarıyla eşleştirildi. Bundan sonra yalnızca bu cihaz üzerinden giriş yapabilirsiniz.")
+                else:
+                    # Eğer eşleştirilmiş cihaz mevcutsa, gelen device_id ile karşılaştırın
+                    if profile.paired_device != device_id:
+                        messages.error(request, "Bu cihaz, kayıtlı cihazınızla eşleşmiyor. Lütfen eşleştirilmiş cihazınızdan giriş yapın.")
+                        return render(request, 'accounts/student_login.html', {'next': next_url})
                 login(request, user)
-                # Şifre değiştirme kontrolü:
+                # Şifre değiştirme kontrolü
                 if user.studentprofile.must_change_password:
                     messages.info(request, "Lütfen ilk girişte şifrenizi değiştiriniz.")
-                    # next parametresini de session'da saklayabiliriz, ancak burada basitçe password_change sayfasına yönlendiriyoruz.
                     return redirect('password_change')
-                # Eğer next parametresi varsa onu kullanıyoruz
                 if next_url:
                     return redirect(next_url)
                 return redirect('student_panel')
@@ -116,6 +126,7 @@ def student_login(request):
         else:
             messages.error(request, "Kullanıcı adı veya şifre hatalı.")
     return render(request, 'accounts/student_login.html', {'next': next_url})
+
 
 
 from django.contrib.auth.views import PasswordChangeView
