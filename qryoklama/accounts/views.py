@@ -98,18 +98,22 @@ def student_login(request):
     if request.method == 'POST':
         username = request.POST.get('username')  # Email kullanılıyor
         password = request.POST.get('password')
-        device_id = request.POST.get('device_id')  # Cihaz kimliği (tarayıcı fingerprint'ı)
+        device_id = request.POST.get('device_id', '').strip()  # Cihaz kimliği
+        if not device_id:
+            messages.error(request, "Cihaz kimliği alınamadı. Lütfen tekrar deneyiniz.")
+            return render(request, 'accounts/student_login.html', {'next': next_url})
+        
         user = authenticate(request, username=username, password=password)
         if user is not None:
             if not user.is_superuser:
                 profile = user.studentprofile
-                # İlk girişte cihaz eşleştirmesi yapılmamışsa kaydet
+                # Eğer cihaz eşleştirmesi daha önce yapılmamışsa, device_id kaydedilsin.
                 if not profile.paired_device:
                     profile.paired_device = device_id
                     profile.save()
                     messages.info(request, "Cihazınız başarıyla eşleştirildi. Bundan sonra yalnızca bu cihaz üzerinden giriş yapabilirsiniz.")
                 else:
-                    # Eğer eşleştirilmiş cihaz mevcutsa, gelen device_id ile karşılaştırın
+                    # Eğer eşleştirilmiş cihaz mevcutsa, yeni gelen device_id ile karşılaştır
                     if profile.paired_device != device_id:
                         messages.error(request, "Bu cihaz, kayıtlı cihazınızla eşleşmiyor. Lütfen eşleştirilmiş cihazınızdan giriş yapın.")
                         return render(request, 'accounts/student_login.html', {'next': next_url})
