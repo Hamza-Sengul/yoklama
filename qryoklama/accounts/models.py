@@ -22,9 +22,11 @@ class StudentProfile(models.Model):
     student_class = models.IntegerField("Sınıf", choices=[(i, str(i)) for i in range(1, 5)])
     department = models.CharField("Bölüm", max_length=100, default="Yönetim Bilişim Sistemleri")
     must_change_password = models.BooleanField(default=True)  # İlk girişte şifre değiştirmeyi zorunlu kılmak için
+    paired_device = models.CharField("Eşleştirilmiş Cihaz Kimliği", max_length=255, blank=True, null=True)
 
     def __str__(self):
         return f"{self.user.get_full_name()} - {self.student_number}"
+
 
 # Derslere kayıt olan öğrenciler (Enrollment)
 class Enrollment(models.Model):
