@@ -257,6 +257,7 @@
           <td>{{ course.course_name }}</td>
           <td>
             <a href="{% url 'course_detail' course.id %}" class="btn btn-detail">Ders Detay</a>
+            <a href="{% url 'send_attendance_email' course.id %}" class="btn btn-success">Yoklamaları Gönder</a>
           </td>
         </tr>
         {% empty %}
