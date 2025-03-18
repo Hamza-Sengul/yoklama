@@ -651,4 +651,65 @@ def send_attendance_email(request, course_id):
     
     messages.success(request, "Yoklama kayıtları öğrencilerinize gönderildi.")
     return redirect('academic_panel')
-
+def send_academic_attendance_email(request):
+    # Akademisyenin oluşturduğu tüm dersleri alıyoruz
+    courses = Course.objects.filter(created_by=request.user).order_by('course_code')
+    
+    # HTML içerik oluşturmak için başlangıç metni
+    html_message = (
+        f"<p>Sayın {request.user.first_name},</p>"
+        "<p>Aşağıda oluşturduğunuz derslerin yoklama kayıtlarına ilişkin detaylı rapor yer almaktadır:</p>"
+    )
+    
+    # Her ders için, o derse ait tüm QR oturumlarını ve özet bilgilerini içeren bir tablo ekliyoruz
+    for course in courses:
+        html_message += f"<h3>{course.course_code.upper()} - {course.course_name}</h3>"
+        # Dersin tüm QR oturumlarını sıralı şekilde getiriyoruz
+        qr_sessions = course.qr_sessions.all().order_by('week_number', 'session_number')
+        if not qr_sessions.exists():
+            html_message += "<p>Bu derse ait yoklama kaydı bulunmamaktadır.</p>"
+            continue
+        
+        # Her ders için özet tablo: Hafta, Oturum, Toplam Öğrenci, Mevcut ve Yok sayıları
+        html_message += (
+            "<table border='1' cellspacing='0' cellpadding='5'>"
+            "<tr>"
+            "<th>Hafta</th>"
+            "<th>Oturum Numarası</th>"
+            "<th>Toplam Öğrenci</th>"
+            "<th>Mevcut</th>"
+            "<th>Yok</th>"
+            "</tr>"
+        )
+        for session in qr_sessions:
+            total = session.attendance_records.count()
+            present = session.attendance_records.filter(present=True).count()
+            absent = total - present
+            html_message += (
+                f"<tr>"
+                f"<td>{session.week_number}</td>"
+                f"<td>{session.session_number}</td>"
+                f"<td>{total}</td>"
+                f"<td>{present}</td>"
+                f"<td>{absent}</td>"
+                f"</tr>"
+            )
+        html_message += "</table><br/>"
+    
+    subject = "Derslerinizin Yoklama Kayıtları - Detaylı Rapor"
+    
+    try:
+        send_mail(
+            subject,
+            '',  # Plain text kısmı boş bırakıldı
+            settings.DEFAULT_FROM_EMAIL,
+            [request.user.email],
+            fail_silently=False,
+            html_message=html_message
+        )
+        messages.success(request, "Yoklama kayıtları raporu e-posta ile gönderildi.")
+    except Exception as e:
+        messages.error(request, f"E-posta gönderilemedi: {e}")
+    
+    return redirect('academic_panel')
+    
