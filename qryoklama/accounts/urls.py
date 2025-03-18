@@ -43,4 +43,5 @@ urlpatterns = [
             template_name='accounts/password_reset_complete.html'
         ), name='password_reset_complete'),
     path('akademisyen/yoklama/gonder/<int:course_id>/', views.send_attendance_email, name='send_attendance_email'),
+    path('akademisyen/yoklama/rapor-gonder/', views.send_academic_attendance_email, name='send_academic_attendance_email'),
 ]
