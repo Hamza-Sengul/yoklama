@@ -603,3 +603,52 @@ def qr_session_end(request, session_id):
     messages.success(request, "QR Oturumu sonlandırıldı. Yoklama sonuçları akademisyen ve öğrencilere gönderildi.")
     return redirect('academic_panel')
 
+
+def send_attendance_email(request, course_id):
+    # Sadece ilgili akademisyenin oluşturduğu dersler için işlem yapalım
+    course = get_object_or_404(Course, id=course_id, created_by=request.user)
+    
+    # İlgili derse kayıtlı öğrencileri alıyoruz (Enrollment üzerinden veya StudentProfile üzerinden)
+    enrollments = course.enrollments.all()
+    
+    # Her öğrenci için yoklama kayıtlarını getirip e-posta gönderelim
+    for enrollment in enrollments:
+        student = enrollment.student
+        # Bu öğrencinin ilgili ders için tüm yoklama kayıtlarını getiriyoruz
+        records = AttendanceRecord.objects.filter(
+            qr_session__course=course, student=student
+        ).order_by('qr_session__week_number', 'qr_session__session_number')
+        
+        # HTML tablosu oluşturmak için basit bir yapı:
+        html_table = "<table border='1' cellspacing='0' cellpadding='5'>"
+        html_table += "<tr><th>Hafta</th><th>Oturum Numarası</th><th>Durum</th></tr>"
+        for record in records:
+            status = "Mevcut" if record.present else "Yok"
+            html_table += f"<tr><td>{record.qr_session.week_number}</td><td>{record.qr_session.session_number}</td><td>{status}</td></tr>"
+        html_table += "</table>"
+        
+        subject = f"{course.course_code.upper()} - Yoklama Kayıtları"
+        # Basit bir HTML e-posta mesajı
+        html_message = (
+            f"<p>Sayın {student.first_name},</p>"
+            f"<p>Dersiniz <strong>{course.course_code.upper()} - {course.course_name}</strong> için yoklama kayıtlarınız aşağıda yer almaktadır: (kayıtlar gerçeği yansıtmamaktadır eksik veri bulunmaktadı ve pilot çalışmalar devam etmektedir.)</p>"
+            f"{html_table}"
+            f"<p>İyi çalışmalar.</p>"
+        )
+        
+        try:
+            send_mail(
+                subject,
+                '',  # Plain text kısmını boş bırakıyoruz
+                settings.DEFAULT_FROM_EMAIL,
+                [student.email],
+                fail_silently=False,
+                html_message=html_message
+            )
+        except Exception as e:
+            # Hata oluşursa loglama yapabilir veya hata mesajı gösterebilirsiniz.
+            print(f"E-posta gönderilemedi ({student.email}): {e}")
+    
+    messages.success(request, "Yoklama kayıtları öğrencilerinize gönderildi.")
+    return redirect('academic_panel')
+
