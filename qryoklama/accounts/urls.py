@@ -42,4 +42,5 @@ urlpatterns = [
     path('ogrenci/sifre-sifirla/done/', auth_views.PasswordResetCompleteView.as_view(
             template_name='accounts/password_reset_complete.html'
         ), name='password_reset_complete'),
+    path('akademisyen/yoklama/gonder/<int:course_id>/', views.send_attendance_email, name='send_attendance_email'),
 ]
