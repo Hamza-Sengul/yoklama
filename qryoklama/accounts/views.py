@@ -651,50 +651,92 @@ def send_attendance_email(request, course_id):
     
     messages.success(request, "Yoklama kayıtları öğrencilerinize gönderildi.")
     return redirect('academic_panel')
+# accounts/views.py
+from django.shortcuts import get_object_or_404, redirect, render
+from django.contrib import messages
+from django.core.mail import send_mail
+from django.conf import settings
+from .models import Course, AttendanceRecord
+from django.template.loader import render_to_string
+
 def send_academic_attendance_email(request):
     # Akademisyenin oluşturduğu tüm dersleri alıyoruz
     courses = Course.objects.filter(created_by=request.user).order_by('course_code')
     
-    # HTML içerik oluşturmak için başlangıç metni
+    # HTML rapor başlangıcı
     html_message = (
         f"<p>Sayın {request.user.first_name},</p>"
         "<p>Aşağıda oluşturduğunuz derslerin yoklama kayıtlarına ilişkin detaylı rapor yer almaktadır:</p>"
     )
     
-    # Her ders için, o derse ait tüm QR oturumlarını ve özet bilgilerini içeren bir tablo ekliyoruz
     for course in courses:
         html_message += f"<h3>{course.course_code.upper()} - {course.course_name}</h3>"
-        # Dersin tüm QR oturumlarını sıralı şekilde getiriyoruz
+        
+        # Dersin QR oturumlarını alalım
         qr_sessions = course.qr_sessions.all().order_by('week_number', 'session_number')
         if not qr_sessions.exists():
             html_message += "<p>Bu derse ait yoklama kaydı bulunmamaktadır.</p>"
-            continue
-        
-        # Her ders için özet tablo: Hafta, Oturum, Toplam Öğrenci, Mevcut ve Yok sayıları
-        html_message += (
-            "<table border='1' cellspacing='0' cellpadding='5'>"
-            "<tr>"
-            "<th>Hafta</th>"
-            "<th>Oturum Numarası</th>"
-            "<th>Toplam Öğrenci</th>"
-            "<th>Mevcut</th>"
-            "<th>Yok</th>"
-            "</tr>"
-        )
-        for session in qr_sessions:
-            total = session.attendance_records.count()
-            present = session.attendance_records.filter(present=True).count()
-            absent = total - present
+        else:
+            # Oturum özet tablosu
             html_message += (
-                f"<tr>"
-                f"<td>{session.week_number}</td>"
-                f"<td>{session.session_number}</td>"
-                f"<td>{total}</td>"
-                f"<td>{present}</td>"
-                f"<td>{absent}</td>"
-                f"</tr>"
+                "<h4>Oturum Özeti</h4>"
+                "<table border='1' cellspacing='0' cellpadding='5'>"
+                "<tr>"
+                "<th>Hafta</th>"
+                "<th>Oturum Numarası</th>"
+                "<th>Toplam Öğrenci</th>"
+                "<th>Mevcut</th>"
+                "<th>Yok</th>"
+                "</tr>"
             )
-        html_message += "</table><br/>"
+            for session in qr_sessions:
+                total = session.attendance_records.count()
+                present = session.attendance_records.filter(present=True).count()
+                absent = total - present
+                html_message += (
+                    f"<tr>"
+                    f"<td>{session.week_number}</td>"
+                    f"<td>{session.session_number}</td>"
+                    f"<td>{total}</td>"
+                    f"<td>{present}</td>"
+                    f"<td>{absent}</td>"
+                    f"</tr>"
+                )
+            html_message += "</table>"
+            
+            # Öğrenci detay tablosu
+            enrollments = course.enrollments.all()
+            if enrollments.exists():
+                html_message += "<h4>Öğrenci Yoklama Detayları</h4>"
+                # Tablo başlığı: İlk sütun öğrenci, ardından her bir oturum için ayrı sütun
+                header_row = "<tr><th>Öğrenci</th>"
+                # Oturumları listeleyip header'a ekliyoruz
+                session_list = list(qr_sessions)
+                for session in session_list:
+                    header_row += f"<th>Hafta {session.week_number} - Oturum {session.session_number}</th>"
+                header_row += "</tr>"
+                
+                html_message += "<table border='1' cellspacing='0' cellpadding='5'>"
+                html_message += header_row
+                
+                # Her öğrenci için satır oluşturuyoruz
+                for enrollment in enrollments:
+                    student = enrollment.student
+                    row = f"<tr><td>{student.first_name} {student.last_name}</td>"
+                    for session in session_list:
+                        try:
+                            record = session.attendance_records.get(student=student)
+                            status = "Mevcut" if record.present else "Mevcut Değil"
+                        except AttendanceRecord.DoesNotExist:
+                            status = "Kayıt Yok"
+                        row += f"<td>{status}</td>"
+                    row += "</tr>"
+                    html_message += row
+                html_message += "</table>"
+            else:
+                html_message += "<p>Bu derse kayıtlı öğrenci bulunmamaktadır.</p>"
+        
+        html_message += "<hr/>"
     
     subject = "Derslerinizin Yoklama Kayıtları - Detaylı Rapor"
     
@@ -712,4 +754,5 @@ def send_academic_attendance_email(request):
         messages.error(request, f"E-posta gönderilemedi: {e}")
     
     return redirect('academic_panel')
+
     
