@@ -1,0 +1,413 @@
+﻿{% load static %}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>Öğrenci Girişi</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- FingerprintJS kütüphanesini ekleyelim -->
+  <script src="https://openfpcdn.io/fingerprintjs/v3"></script>
+  <style>
+    :root {
+      --primary-color: #2563eb;
+      --primary-hover: #1d4ed8;
+      --secondary-color: #64748b;
+      --accent-color: #f0f7ff;
+      --light-color: #f8fafc;
+      --dark-color: #0f172a;
+      --error-color: #ef4444;
+      --success-color: #10b981;
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      --transition: all 0.3s ease;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    
+    body {
+      background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      color: var(--dark-color);
+    }
+    
+    .container {
+      background: white;
+      border-radius: 12px;
+      box-shadow: var(--shadow-lg);
+      width: 100%;
+      max-width: 450px;
+      padding: 40px 30px;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .container::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 6px;
+      background: var(--primary-color);
+    }
+    
+    .logo-container {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    
+    .logo {
+      width: 80px;
+      height: 80px;
+      background-color: var(--primary-color);
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 34px;
+      font-weight: bold;
+      margin-bottom: 15px;
+      box-shadow: var(--shadow-md);
+    }
+    
+    h1 {
+      color: var(--dark-color);
+      margin-bottom: 30px;
+      font-weight: 700;
+      font-size: 28px;
+      text-align: center;
+    }
+    
+    .form-group {
+      margin-bottom: 24px;
+      position: relative;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+      font-size: 16px;
+      color: var(--secondary-color);
+    }
+    
+    .input-group {
+      position: relative;
+    }
+    
+    input[type="text"],
+    input[type="password"],
+    input[type="email"] {
+      width: 100%;
+      padding: 14px 16px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 16px;
+      transition: var(--transition);
+      background-color: var(--light-color);
+      color: var(--dark-color);
+    }
+    
+    input:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+    }
+    
+    .input-icon {
+      position: absolute;
+      top: 50%;
+      right: 16px;
+      transform: translateY(-50%);
+      color: var(--secondary-color);
+    }
+    
+    .alert {
+      padding: 14px 16px;
+      margin-bottom: 24px;
+      border-radius: 8px;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+    }
+    
+    .alert.success {
+      background-color: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      color: var(--success-color);
+    }
+    
+    .alert.error {
+      background-color: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      color: var(--error-color);
+    }
+    
+    .alert-icon {
+      margin-right: 12px;
+      flex-shrink: 0;
+    }
+    
+    .btn {
+      width: 100%;
+      padding: 14px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      text-align: center;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .btn-primary {
+      background-color: var(--primary-color);
+      color: white;
+      box-shadow: var(--shadow-sm);
+    }
+    
+    .btn-primary:hover:not(:disabled) {
+      background-color: var(--primary-hover);
+      box-shadow: var(--shadow-md);
+    }
+    
+    .btn:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+    
+    .btn-loading:disabled::after {
+      content: "";
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 1s linear infinite;
+      margin-left: 10px;
+    }
+    
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+    
+    .footer {
+      margin-top: 24px;
+      text-align: center;
+    }
+    
+    .link {
+      color: var(--primary-color);
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 15px;
+      transition: var(--transition);
+      display: inline-block;
+      padding: 4px 0;
+    }
+    
+    .link:hover {
+      color: var(--primary-hover);
+    }
+    
+    /* Mobil uyumluluk için ekstra düzenlemeler */
+    @media (max-width: 640px) {
+      .container {
+        padding: 30px 20px;
+      }
+      
+      h1 {
+        font-size: 24px;
+      }
+      
+      input[type="text"],
+      input[type="password"],
+      input[type="email"],
+      .btn {
+        padding: 12px 16px;
+        font-size: 15px;
+      }
+      
+      .logo {
+        width: 70px;
+        height: 70px;
+        font-size: 28px;
+      }
+    }
+    
+    /* Dokunmatik cihazlar için ekstra geliştirmeler */
+    @media (pointer: coarse) {
+      .btn {
+        min-height: 50px;
+        padding: 16px 24px;
+        font-size: 18px;
+      }
+      
+      label {
+        font-size: 18px;
+      }
+      
+      input[type="text"],
+      input[type="password"],
+      input[type="email"] {
+        padding: 16px;
+        font-size: 18px;
+      }
+      
+      .link {
+        padding: 10px 0;
+        font-size: 16px;
+      }
+    }
+    
+    /* Touchscreen cihazlara özel düzenlemeler */
+    @media (hover: none) {
+      .btn {
+        transition: none;
+      }
+      
+      .btn:active {
+        background-color: var(--primary-hover);
+        transform: translateY(1px);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo-container">
+      <div class="logo">EG</div>
+    </div>
+    <h1>Öğrenci Girişi</h1>
+    
+    {% if messages %}
+      {% for message in messages %}
+        <div class="alert {{ message.tags }}">
+          <span class="alert-icon">
+            {% if message.tags == 'success' %}
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+            {% else %}
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            {% endif %}
+          </span>
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endif %}
+    
+    <form method="post" id="loginForm">
+      {% csrf_token %}
+      <input type="hidden" id="device_id" name="device_id">
+      
+      <div class="form-group">
+        <label for="username">E-posta Adresiniz</label>
+        <div class="input-group">
+          <input type="email" id="username" name="username" required autocomplete="email">
+          <div class="input-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+              <polyline points="22,6 12,13 2,6"></polyline>
+            </svg>
+          </div>
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label for="password">Şifre</label>
+        <div class="input-group">
+          <input type="password" id="password" name="password" required autocomplete="current-password">
+          <div class="input-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+          </div>
+        </div>
+      </div>
+      
+      <button type="submit" id="loginBtn" class="btn btn-primary" disabled>
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+          <polyline points="10 17 15 12 10 7"></polyline>
+          <line x1="15" y1="12" x2="3" y2="12"></line>
+        </svg>
+        Giriş Yap
+      </button>
+    </form>
+    
+    <div class="footer">
+      <a href="{% url 'password_reset' %}" class="link">Şifremi Unuttum</a>
+    </div>
+  </div>
+  
+  <script>
+    // FingerprintJS yüklemesi ve cihaz kimliği alma
+    const fpPromise = fetch('https://openfpcdn.io/fingerprintjs/v3/iife.min.js')
+      .then(response => response.text())
+      .then(text => {
+        eval(text);
+        return FingerprintJS.load();
+      });
+      
+    fpPromise
+      .then(fp => fp.get())
+      .then(result => {
+        document.getElementById('device_id').value = result.visitorId;
+        
+        // Giriş butonu etkinleştirme
+        const loginBtn = document.getElementById('loginBtn');
+        loginBtn.disabled = false;
+        
+        // Touch cihaz desteği ekleyelim
+        loginBtn.addEventListener('touchstart', function() {
+          this.style.backgroundColor = 'var(--primary-hover)';
+        });
+        
+        loginBtn.addEventListener('touchend', function() {
+          this.style.backgroundColor = 'var(--primary-color)';
+        });
+      })
+      .catch(error => {
+        console.error('FingerprintJS yüklenemedi:', error);
+        
+        // FingerprintJS yüklenemese bile giriş yapılabilsin
+        document.getElementById('loginBtn').disabled = false;
+      });
+      
+    // Form gönderildiğinde yükleniyor durumu gösterme
+    document.getElementById('loginForm').addEventListener('submit', function() {
+      const loginBtn = document.getElementById('loginBtn');
+      loginBtn.disabled = true;
+      loginBtn.classList.add('btn-loading');
+      loginBtn.innerHTML = 'Giriş Yapılıyor...';
+    });
+  </script>
+</body>
+</html>
